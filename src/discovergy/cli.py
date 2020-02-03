@@ -18,6 +18,9 @@ from discovergy import __version__, poller
 
 from docopt import docopt
 
+from .config import read_config
+from .utils import start_logging
+
 
 def print_help() -> None:
     """Print the help and exit."""
@@ -29,6 +32,9 @@ def print_help() -> None:
 def main():
     """Parse arguments and dispatch to the submodule"""
 
+    config = read_config()
+    start_logging(config)
+
     dispatch = {
         "poll": poller.main,
     }
@@ -39,7 +45,7 @@ def main():
         options_first=True,
     )
 
-    dispatch.get(arguments['<command>'], print_help)()
+    dispatch.get(arguments['<command>'], print_help)(config)
 
 
 if __name__ == '__main__':
