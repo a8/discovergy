@@ -16,8 +16,10 @@ from box import Box
 from loguru import logger as log
 
 
-TimeStampedValue = NamedTuple('TimeStampedValue', [('timestamp', float), ('value', Any)])
-ValueUnit = NamedTuple('ValueUnit', [('value', Union[float, int]), ('unit', str)])
+TimeStampedValue = NamedTuple(
+    "TimeStampedValue", [("timestamp", float), ("value", Any)]
+)
+ValueUnit = NamedTuple("ValueUnit", [("value", Union[float, int]), ("unit", str)])
 
 
 def start_logging(config: Box) -> None:
@@ -50,7 +52,7 @@ def start_logging(config: Box) -> None:
 
 def str2bool(value: str) -> bool:
     """Return the boolean value of the value given as a str."""
-    if value.lower() in ['true', '1', 't', 'y', 'yes', 'yeah']:
+    if value.lower() in ["true", "1", "t", "y", "yes", "yeah"]:
         return True
 
     return False
@@ -93,7 +95,7 @@ def get_humanized_timediff_str(timediff: int) -> str:
     if timediff < 1:
         return "{0:.3f}s".format(timediff)
     if timediff == 0:
-        return '0s'
+        return "0s"
     elements = [int(e) for e in humanize_timediff(timediff)]
     # Reduce the list to only values
     count_0 = 0
@@ -103,11 +105,11 @@ def get_humanized_timediff_str(timediff: int) -> str:
         else:
             break
     elements = elements[count_0:]
-    time_fs = ":".join(len(elements) * ['{:02d}'])
+    time_fs = ":".join(len(elements) * ["{:02d}"])
     if len(elements) == 4:
-        time_fs = time_fs.replace('{:02d}:', '{:d}T', 1)
+        time_fs = time_fs.replace("{:02d}:", "{:d}T", 1)
     elif len(elements) == 1:
-        time_fs = '{:d}s'
+        time_fs = "{:d}s"
 
     return time_fs.format(*elements)
 
@@ -119,17 +121,22 @@ def verify_file_permissions(path: Path) -> bool:
         if file_stat.st_uid != os.getuid():
             return False
 
-        if re.match(r'0o*100[0-6]00', oct(file_stat.st_mode)):
+        if re.match(r"0o*100[0-6]00", oct(file_stat.st_mode)):
             return True
         try:
             os.chmod(path, 0o600)
         except OSError:
-            log.error(f"Tried to change the permissions of {path} but failed. "
-                      "Please fix the permissions to max. 0600 yourself!")
+            log.error(
+                f"Tried to change the permissions of {path} but failed. "
+                "Please fix the permissions to max. 0600 yourself!"
+            )
             return False
         else:
-            log.warning("The file {} didn't have secure file permissions {}. "
-                        "The permissions were changed to -rw------- for you. ".format(
-                            path, oct(file_stat.st_mode)))
+            log.warning(
+                "The file {} didn't have secure file permissions {}. "
+                "The permissions were changed to -rw------- for you. ".format(
+                    path, oct(file_stat.st_mode)
+                )
+            )
             return True
     return False

@@ -40,13 +40,11 @@ def main():
     }
 
     arguments = docopt(
-        __doc__.format(cmd=sys.argv[0]),
-        version=__version__,
-        options_first=True,
+        __doc__.format(cmd=sys.argv[0]), version=__version__, options_first=True,
     )
 
-    dispatch.get(arguments['<command>'], print_help)(config)
+    dispatch.get(arguments["<command>"], print_help)(config)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

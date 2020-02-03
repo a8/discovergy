@@ -52,10 +52,14 @@ def bootstrap_config(path: Optional[str] = None) -> ConfigUpdater:
             break
     open_weather_map = input("Please enter the Open Weather Map id. <Enter> for none.")
 
-    config_updater.set('discovergy_account', 'email', value=discovergy_account_email)
-    config_updater.set('discovergy_account', 'password', value=discovergy_account_password)
-    config_updater.set('discovergy_account', 'save_password', value=save_account_password)
-    config_updater.set('open_weather_map', 'id', value=open_weather_map)
+    config_updater.set("discovergy_account", "email", value=discovergy_account_email)
+    config_updater.set(
+        "discovergy_account", "password", value=discovergy_account_password
+    )
+    config_updater.set(
+        "discovergy_account", "save_password", value=save_account_password
+    )
+    config_updater.set("open_weather_map", "id", value=open_weather_map)
     write_config_updater(path, config_updater)
     return config_updater
 
@@ -64,36 +68,34 @@ def write_config_updater(path: Path, config: ConfigUpdater) -> None:
     """Write the config file."""
     to_write_config = copy.deepcopy(config)
     # Do not save the pwd if that's not wanted!
-    if config.has_option('discovergy_account', 'save_password') and not config.get(
-            'discovergy_account', 'save_password').value:
-        to_write_config.set('discovergy_account', 'password', value='')
-    with os.fdopen(os.open(path.as_posix(), os.O_WRONLY | os.O_CREAT, 0o600), "w") as fh:
+    if (
+        config.has_option("discovergy_account", "save_password")
+        and not config.get("discovergy_account", "save_password").value
+    ):
+        to_write_config.set("discovergy_account", "password", value="")
+    with os.fdopen(
+        os.open(path.as_posix(), os.O_WRONLY | os.O_CREAT, 0o600), "w"
+    ) as fh:
         to_write_config.write(fh)
 
 
 def verify_config(config: Box) -> bool:
     """Return (True|False) result if the config matches the schema."""
-    config_schema = schema.Schema({
-        'discovergy_account': {
-            'email': schema.And(str, len),
-            'password': schema.Optional(str),
-            'save_password': schema.And(schema.Use(str.lower), lambda x: x in ('true', 'false')),
-        },
-        'auth_token': {
-            'token': str
-        },
-        'file_location': {
-            'data_dir': str,
-            'log_dir': str,
-        },
-        'poll': {
-            'default': schema.Use(int),
-            'try_sleep': schema.Use(int),
-        },
-        schema.Optional('open_weather_map'): {
-            'id': str
-        },
-    })
+    config_schema = schema.Schema(
+        {
+            "discovergy_account": {
+                "email": schema.And(str, len),
+                "password": schema.Optional(str),
+                "save_password": schema.And(
+                    schema.Use(str.lower), lambda x: x in ("true", "false")
+                ),
+            },
+            "auth_token": {"token": str},
+            "file_location": {"data_dir": str, "log_dir": str,},
+            "poll": {"default": schema.Use(int), "try_sleep": schema.Use(int),},
+            schema.Optional("open_weather_map"): {"id": str},
+        }
+    )
     try:
         config_schema.validate(config)
     except schema.SchemaError as e:
@@ -126,7 +128,9 @@ def read_config(path: Optional[str] = None) -> Box:
         sys.exit(1)
 
     if not verify_file_permissions(path):
-        log.error(f"Could not ensure secure file permissions for {path}. Fix them and try again.")
+        log.error(
+            f"Could not ensure secure file permissions for {path}. Fix them and try again."
+        )
         sys.exit(1)
 
     if found_config_file:
