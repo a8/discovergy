@@ -16,7 +16,7 @@ import sys
 
 from discovergy import __version__, poller
 
-from docopt import docopt
+from docopt import docopt  # type: ignore
 
 from .config import read_config
 from .utils import start_logging

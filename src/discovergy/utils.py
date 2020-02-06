@@ -9,17 +9,37 @@ import os
 import re
 import sys
 
+from contextlib import ContextDecorator
 from pathlib import Path
-from typing import Any, NamedTuple, Tuple, Union
+from timeit import default_timer
+from typing import Any, Callable, NamedTuple, Tuple, Union
 
-from box import Box
+
+from box import Box  # type: ignore
 from loguru import logger as log
+from tenacity import _utils  # type: ignore
 
 
-TimeStampedValue = NamedTuple(
-    "TimeStampedValue", [("timestamp", float), ("value", Any)]
-)
-ValueUnit = NamedTuple("ValueUnit", [("value", Union[float, int]), ("unit", str)])
+class TimeStampedValue(NamedTuple):
+    timestamp: float
+    value: Any
+
+
+class ValueUnit(NamedTuple):
+    value: Union[float, int]
+    unit: str
+
+
+class measure_duration(ContextDecorator):
+    """A context manager that measures time from enter to exit."""
+
+    def __enter__(self):
+        self.start = default_timer()
+        return self
+
+    def __exit__(self, *exc):
+        self.duration = default_timer() - self.start
+        return False
 
 
 def start_logging(config: Box) -> None:
@@ -47,7 +67,20 @@ def start_logging(config: Box) -> None:
         ],
         "extra": {"user": "someone"},
     }
-    log.configure(**log_config)
+    log.configure(**log_config)  # type: ignore
+
+
+def before_log(logger: Any, log_level: str) -> Callable:
+    """Before call strategy that logs to some logger the attempt."""
+
+    def log_it(retry_state):
+        logger = getattr(log, log_level)
+        logger(
+            f"Starting call to '{_utils.get_callback_name(retry_state.fn)}', "
+            f"this is the {_utils.to_ordinal(retry_state.attempt_number)} time calling it."
+        )
+
+    return log_it
 
 
 def str2bool(value: str) -> bool:

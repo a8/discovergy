@@ -12,19 +12,19 @@ import os
 import sys
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
-import schema
+import schema  # type: ignore
 
-from box import Box
-from configupdater import ConfigUpdater
+from box import Box  # type: ignore
+from configupdater import ConfigUpdater  # type: ignore
 from loguru import logger as log
 
 from .defaults import DEFAULT_CONFIG
 from .utils import verify_file_permissions
 
 
-def bootstrap_config(path: Optional[str] = None) -> ConfigUpdater:
+def bootstrap_config(path: Optional[Path] = None) -> ConfigUpdater:
     """Create the Config file and populate it."""
     if path is None:
         path = Path(os.path.expanduser("~")) / ".config" / "discovergy" / "config.ini"
@@ -40,14 +40,14 @@ def bootstrap_config(path: Optional[str] = None) -> ConfigUpdater:
     )
     save_account_password = False
     while True:
-        save_account_password = input(
+        save_account_password_input = input(
             "Do you want to save the password to the config file? It will be required to fetch a new "
             "Oauth token once the current one expires. (y/n)"
         )
-        if save_account_password.lower() == "y":
+        if save_account_password_input.lower() == "y":
             save_account_password = True
             break
-        elif save_account_password.lower() == "n":
+        elif save_account_password_input.lower() == "n":
             save_account_password = False
             break
     open_weather_map = input("Please enter the Open Weather Map id. <Enter> for none.")
@@ -62,6 +62,55 @@ def bootstrap_config(path: Optional[str] = None) -> ConfigUpdater:
     config_updater.set("open_weather_map", "id", value=open_weather_map)
     write_config_updater(path, config_updater)
     return config_updater
+
+
+def config_updater_factory(config: Box) -> Tuple[Path, ConfigUpdater]:
+    """Return a ConfigUpdater object and the path obj to the config file.
+
+    Note, the config file must exist. There isn't too much error checking in this
+    function. E. g. that will not work with an empty config file.
+    """
+    config_updater_data = copy.deepcopy(config)
+    if "config_file_path" in config_updater_data:
+        path = Path(config_updater_data.pop("config_file_path"))
+    else:
+        raise AttributeError(
+            "The config is missing the config_file_path. This should not happen."
+        )
+
+    config_updater = ConfigUpdater()
+    to_add = []
+    with open(path.as_posix()) as fh:
+        config_updater.read_file(fh)
+    for section in config_updater_data:
+        if config_updater.has_section(section):
+            config_updater_section = config_updater[section]
+            last_option = config_updater_section.options()[-1]
+            for option, value in config[section].items():
+                if option in config_updater_section:
+                    config_updater_section[option].value = value
+                else:
+                    config_updater_section[last_option].add_after.option(option, value)
+                    last_option = option
+            config_updater[section] = config_updater_section
+        else:
+            tmp_updater = ConfigUpdater()
+            section_txt = f"[{section}]\n" + "\n".join(
+                (
+                    f"{option}: {value}"
+                    for option, value in config_updater_data[section].items()
+                )
+            )
+            tmp_updater.read_string(section_txt)
+            to_add.append(tmp_updater[section])
+    if to_add:
+        last_section = config_updater[config_updater.sections()[-1]]
+        for section in to_add:
+            # Add a new line for readability
+            config_updater[last_section.name].add_after.space().section(section)
+            last_section = section
+
+    return path, config_updater
 
 
 def write_config_updater(path: Path, config: ConfigUpdater) -> None:
@@ -90,10 +139,18 @@ def verify_config(config: Box) -> bool:
                     schema.Use(str.lower), lambda x: x in ("true", "false")
                 ),
             },
-            "auth_token": {"token": str},
             "file_location": {"data_dir": str, "log_dir": str,},
             "poll": {"default": schema.Use(int), "try_sleep": schema.Use(int),},
             schema.Optional("open_weather_map"): {"id": str},
+            schema.Optional("oauth1_token"): {
+                "key": str,
+                "client_secret": str,
+                "token": str,
+                "token_secret": str,
+            },
+            # meters stores the meters to read if configured. Otherwise, read all. The key is a nice name,
+            # value is the meter id.
+            schema.Optional("meters"): {str: str},
         }
     )
     try:
@@ -104,11 +161,11 @@ def verify_config(config: Box) -> bool:
     return True
 
 
-def read_config(path: Optional[str] = None) -> Box:
+def read_config(path: Optional[Path] = None) -> Box:
     """Return the config"""
     config = Box(box_it_up=True)
     if path:
-        config_path_locations = (path,)
+        config_path_locations: Tuple[Path, ...] = (path,)
     else:
         config_path_locations = (
             Path(Path("/etc") / "discovergy" / "config.ini"),
@@ -142,6 +199,7 @@ def read_config(path: Optional[str] = None) -> Box:
             sys.exit(1)
 
     config = Box(config_updater.to_dict(), box_dots=True)
+    config["config_file_path"] = path
 
     # Strip off quotes that made it into the config.ini file
     config.file_location.data_dir = config.file_location.data_dir.strip("\"'")
