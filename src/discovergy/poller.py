@@ -92,7 +92,7 @@ def read_data(
     """Poll the Discovergy API."""
 
     for meter_id, meter in meters.items():
-        log.info("Fetching data for meter {meter_id}...")
+        log.info(f"Fetching data for meter {meter_id}...")
         data = meter.readings(
             ts_from=date_from.timestamp, ts_to=date_to.timestamp, resolution="raw"
         )
