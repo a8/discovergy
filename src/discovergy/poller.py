@@ -50,7 +50,10 @@ def get_weather(
 def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
     """Describe all meters, save them to the config dir, and return the meters
     configured. In no [meters] are configured return all."""
-    configured_meters = config.meters.values()
+    if "meters" in config:
+        configured_meters = config.meters.values()
+    else:
+        configured_meters = []
     meters = {}
     now = arrow.utcnow()
     for meter in describe_meters(config):
