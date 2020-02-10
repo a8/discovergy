@@ -12,7 +12,7 @@ import sys
 from contextlib import ContextDecorator
 from pathlib import Path
 from timeit import default_timer
-from typing import Any, Callable, NamedTuple, Tuple, Union
+from typing import Any, Callable, NamedTuple, Union
 
 
 from box import Box  # type: ignore
@@ -89,62 +89,6 @@ def str2bool(value: str) -> bool:
         return True
 
     return False
-
-
-def humanize_timediff(timediff: int) -> Tuple[int, int, int, int]:
-    """Return (days, hours, minutes, seconds) of timespan in seconds"""
-    minutes, seconds = divmod(timediff, 60)
-    hours, minutes = divmod(minutes, 60)
-    days, hours = divmod(hours, 24)
-
-    return days, hours, minutes, seconds
-
-
-def get_humanized_timediff_str(timediff: int) -> str:
-    """Return a human readable string of the given timediff. The length is
-    dynamic.
-
-    Examples:
-
-    >>> get_humanize_timediff_str(0)
-    '0s'
-
-    >>> get_humanize_timediff_str(1)
-    '1s'
-
-    >>> get_humanize_timediff_str(10)
-    '10s'
-
-    >>> get_humanize_timediff_str(60)
-    '01:00'
-
-    >>> get_humanize_timediff_str(23 * 3600 + 1)
-    '23:00:01'
-
-    >>> get_humanize_timediff_str(24 * 3600 + 1)
-    '1T00:00:01'
-
-    """
-    if timediff < 1:
-        return "{0:.3f}s".format(timediff)
-    if timediff == 0:
-        return "0s"
-    elements = [int(e) for e in humanize_timediff(timediff)]
-    # Reduce the list to only values
-    count_0 = 0
-    for e in elements:
-        if not e:
-            count_0 += 1
-        else:
-            break
-    elements = elements[count_0:]
-    time_fs = ":".join(len(elements) * ["{:02d}"])
-    if len(elements) == 4:
-        time_fs = time_fs.replace("{:02d}:", "{:d}T", 1)
-    elif len(elements) == 1:
-        time_fs = "{:d}s"
-
-    return time_fs.format(*elements)
 
 
 def verify_file_permissions(path: Path) -> bool:
