@@ -2,13 +2,16 @@
 
 """Discovergy poller
 
-Poll for data
+Poll for data from different sources.
 
+All functions that end with _task will be feed to the event loop.
 """
 
+import asyncio
 import gzip
 import json
 import os
+import re
 import sys
 import time
 
@@ -105,26 +108,60 @@ def read_data(
         write_data(data=data, file_path=file_path)
 
 
-def main(config: Box) -> None:
+async def open_weather_map_task(
+    *,
+    config: Box,
+    loop: asyncio.base_events.BaseEventLoop,
+) -> None:
+    """Async worker to poll the OWM API."""
+
+
+async def meter_read_task(
+    *,
+    config: Box,
+    loop: asyncio.base_events.BaseEventLoop,
+) -> None:
+    """Async worker to poll the Discovergy API."""
     meters = get_meters(config)
-    read_interval = timedelta(hours=12)
+    read_interval = timedelta(seconds=int(config.poll.discovergy))
     date_to = arrow.utcnow()
     date_from = date_to - read_interval
-    while True:
+    log.debug(f"The Discovergy read interval is {read_interval}.")
+    while loop.is_running():
         try:
+            # FIXME (a8): This isn't an async call yet because we use requests. OTHO, this doesn't
+            # really matter ATM. We only call Discovergy every few hours.
             read_data(
                 config=config, meters=meters, date_from=date_from, date_to=date_to
             )
-        except KeyboardInterrupt:
-            log.info("Polling Discovergy was ended by <Ctrl>+<C>.")
-            sys.exit()
         except Exception as e:
-            log.error("Error in poller: {}.\n".format(str(e)))
-            time.sleep(15)
+            log.warning("Error in Discovergy poller. Retrying in 15 seconds. {}".format(str(e)))
+            await asyncio.sleep(15)
         else:
-            time.sleep(read_interval.seconds)
+            await asyncio.sleep(read_interval.seconds)
             date_from = date_to
             date_to = arrow.utcnow()
+
+
+def main(config: Box) -> None:
+    loop = asyncio.get_event_loop()
+    task_match = re.compile(r'^.*_task$')
+    # Add all tasks to the event loop.
+    for attr in globals().keys():
+        if task_match.match(attr):
+            asyncio.ensure_future(globals()[attr](config=config, loop=loop))
+
+    while True:
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            log.info("Polling Discovergy and friends was ended by <Ctrl>+<C>.")
+            sys.exit(0)
+        except Exception as e:
+            log.error(f"While running the poller event loop we caught {e}.")
+        finally:
+            print("Closing event loop")
+            loop.close()
 
 
 if __name__ == "__main__":
