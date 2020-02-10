@@ -7,7 +7,7 @@ Discovergy Awattar module
 Poll the Awattar API
 """
 from urllib.parse import urlencode
-from typing import Dict, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 
@@ -26,7 +26,7 @@ from .utils import before_log
 )
 async def get_data(
     *, config: Box, start: Optional[int] = None, end: Optional[int] = None
-) -> Dict:
+) -> Union[Dict[Any, Any], List[Any]]:
     """Return a new consumer token."""
     endpoint = "https://api.awattar.de/v1/marketdata{}".format
     params = {}

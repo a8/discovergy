@@ -65,7 +65,7 @@ def get_weather(*, config: Box) -> None:
     open_weather_map = OWM(owm_id)
     if not open_weather_map.is_API_online():
         log.warning("Open Weather Map endpoint is not online-line.\n")
-        return {}
+        return
     start_ts = arrow.utcnow()
     try:
         weather = open_weather_map.weather_at_coords(latitude, longitude)
