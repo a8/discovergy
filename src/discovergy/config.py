@@ -51,6 +51,8 @@ def bootstrap_config(path: Optional[Path] = None) -> ConfigUpdater:
             save_account_password = False
             break
     open_weather_map = input("Please enter the Open Weather Map id. <Enter> for none.")
+    latitude = input("Please enter the latitude of the location. <Enter> for none.")
+    longitude = input("Please enter the latitude of the location. <Enter> for none.")
 
     config_updater.set("discovergy_account", "email", value=discovergy_account_email)
     config_updater.set(
@@ -60,6 +62,8 @@ def bootstrap_config(path: Optional[Path] = None) -> ConfigUpdater:
         "discovergy_account", "save_password", value=save_account_password
     )
     config_updater.set("open_weather_map", "id", value=open_weather_map)
+    config_updater.set("open_weather_map", "latitude", value=latitude)
+    config_updater.set("open_weather_map", "longitude", value=longitude)
     write_config_updater(path, config_updater)
     return config_updater
 

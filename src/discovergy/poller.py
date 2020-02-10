@@ -13,9 +13,7 @@ import json
 import os
 import re
 import sys
-import time
 
-from functools import lru_cache
 from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List
@@ -31,23 +29,37 @@ from .config import read_config
 from .utils import start_logging
 
 
-@lru_cache(maxsize=50)
-def get_weather(
-    *, latitude: float, longitude: float, owm_id: str, ttl_hash: int
-) -> dict:
+def get_weather(*, config: Box) -> dict:
     """Return the weather data."""
+    try:
+        owm_id = config.open_weather_map['id']
+        latitude = float(config.open_weather_map['latitude'])
+        longitude = float(config.open_weather_map['longitude'])
+    except KeyError:
+        log.error("The config file does not contain all Open Weather Map config keys (id, latitude, longitude). Cannot continue.")
+        sys.exit(1)
+    if owm_id.lower() == "none":
+        log.debug("Open Weather Map is not configured.")
+        return
+
     open_weather_map = OWM(owm_id)
     if not open_weather_map.is_API_online():
         log.warning("Open Weather Map endpoint is not online-line.\n")
         return {}
+    start_ts = arrow.utcnow()
     try:
         weather = open_weather_map.weather_at_coords(latitude, longitude)
     except Exception as e:
-        sys.stderr.write("Could not fetch weather: {}.\n".format(str(e)))
         log.warning("Could not fetch weather: {}.\n".format(str(e)))
-        return {}
+        return
+    else:
+        elapsed_time = arrow.utcnow() - start_ts
+        log.debug(f"Fetching Open Weather Map took {elapsed_time}.")
 
-    return json.loads(weather.to_JSON())
+    date = arrow.utcnow()
+    file_name = (f"open_weather_map_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz")
+    file_path = Path(config.file_location.data_dir) / Path(file_name)
+    write_data(data=weather.to_JSON(), file_path=file_path)
 
 
 def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
@@ -143,6 +155,25 @@ async def meter_read_task(
             date_to = arrow.utcnow()
 
 
+async def owm_read_task(
+    *,
+    config: Box,
+    loop: asyncio.base_events.BaseEventLoop,
+) -> None:
+    """Async worker to poll the Open Weather Map API."""
+    read_interval = timedelta(seconds=int(config.poll.weather))
+    log.debug(f"The Open Weather Map read interval is {read_interval}.")
+    while loop.is_running():
+        try:
+            # FIXME (a8): This isn't an async call yet because we use requests.
+            get_weather(config=config)
+        except Exception as e:
+            log.warning("Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(str(e)))
+            await asyncio.sleep(15)
+        else:
+            await asyncio.sleep(read_interval.seconds)
+
+
 def main(config: Box) -> None:
     loop = asyncio.get_event_loop()
     task_match = re.compile(r'^.*_task$')
@@ -151,17 +182,16 @@ def main(config: Box) -> None:
         if task_match.match(attr):
             asyncio.ensure_future(globals()[attr](config=config, loop=loop))
 
-    while True:
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            log.info("Polling Discovergy and friends was ended by <Ctrl>+<C>.")
-            sys.exit(0)
-        except Exception as e:
-            log.error(f"While running the poller event loop we caught {e}.")
-        finally:
-            print("Closing event loop")
-            loop.close()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        log.info("Polling Discovergy and friends was ended by <Ctrl>+<C>.")
+        sys.exit(0)
+    except Exception as e:
+        log.error(f"While running the poller event loop we caught {e}.")
+    finally:
+        print("Closing event loop")
+        loop.close()
 
 
 if __name__ == "__main__":

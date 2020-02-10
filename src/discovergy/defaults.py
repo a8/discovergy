@@ -30,4 +30,6 @@ awattar: 43200
 
 [open_weather_map]
 id: none
+latitude: none
+longitude: none
 """
