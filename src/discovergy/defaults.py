@@ -23,8 +23,10 @@ data_dir: "~/discovergy/data/"
 log_dir: "~/discovergy/log/"
 
 [poll]
-default: 60
-try_sleep: 1200
+# all values in seconds
+discovergy: 43200
+weather: 7200
+awattar: 43200
 
 [open_weather_map]
 id: none
