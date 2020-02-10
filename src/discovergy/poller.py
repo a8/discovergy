@@ -24,13 +24,31 @@ from box import Box  # type: ignore
 from loguru import logger as log
 from pyowm import OWM  # type: ignore
 
+from . import awattar
 from .api import DiscovergyMeter, describe_meters, save_meters
 from .config import read_config
 from .utils import start_logging
 
 
-def get_weather(*, config: Box) -> dict:
-    """Return the weather data."""
+async def get_awattar(*, config: Box) -> None:
+    """Fetch and write Awattar data."""
+    start_ts = arrow.utcnow()
+    try:
+        data = await awattar.get_data(config=config)
+    except Exception as e:
+        log.warning("Could not fetch Awattar data: {}.".format(str(e)))
+    else:
+        elapsed_time = arrow.utcnow() - start_ts
+        log.debug(f"Fetching Awattar data took {elapsed_time}.")
+
+    date = arrow.utcnow()
+    file_name = (f"awattar_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz")
+    file_path = Path(config.file_location.data_dir) / Path(file_name)
+    write_data(data=data, file_path=file_path)
+
+
+def get_weather(*, config: Box) -> None:
+    """Fetch and write the Open Weather Map data."""
     try:
         owm_id = config.open_weather_map['id']
         latitude = float(config.open_weather_map['latitude'])
@@ -50,7 +68,7 @@ def get_weather(*, config: Box) -> dict:
     try:
         weather = open_weather_map.weather_at_coords(latitude, longitude)
     except Exception as e:
-        log.warning("Could not fetch weather: {}.\n".format(str(e)))
+        log.warning("Could not fetch weather: {}.".format(str(e)))
         return
     else:
         elapsed_time = arrow.utcnow() - start_ts
@@ -120,15 +138,7 @@ def read_data(
         write_data(data=data, file_path=file_path)
 
 
-async def open_weather_map_task(
-    *,
-    config: Box,
-    loop: asyncio.base_events.BaseEventLoop,
-) -> None:
-    """Async worker to poll the OWM API."""
-
-
-async def meter_read_task(
+async def discovergy_meter_read_task(
     *,
     config: Box,
     loop: asyncio.base_events.BaseEventLoop,
@@ -155,7 +165,25 @@ async def meter_read_task(
             date_to = arrow.utcnow()
 
 
-async def owm_read_task(
+async def awattar_read_task(
+    *,
+    config: Box,
+    loop: asyncio.base_events.BaseEventLoop,
+) -> None:
+    """Async worker to poll the Open Weather Map API."""
+    read_interval = timedelta(seconds=int(config.poll.awattar))
+    log.debug(f"The Awattar read interval is {read_interval}.")
+    while loop.is_running():
+        try:
+            await get_awattar(config=config)
+        except Exception as e:
+            log.warning("Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(str(e)))
+            await asyncio.sleep(15)
+        else:
+            await asyncio.sleep(read_interval.seconds)
+
+
+async def open_weather_map_read_task(
     *,
     config: Box,
     loop: asyncio.base_events.BaseEventLoop,
