@@ -24,7 +24,9 @@ from .utils import before_log
     wait=wait_exponential(multiplier=1, min=4, max=10),
     reraise=True,
 )
-async def get_data(*, config: Box, start: Optional[int] = None, end: Optional[int] = None) -> Dict:
+async def get_data(
+    *, config: Box, start: Optional[int] = None, end: Optional[int] = None
+) -> Dict:
     """Return a new consumer token."""
     endpoint = "https://api.awattar.de/v1/marketdata{}".format
     params = {}

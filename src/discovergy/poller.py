@@ -42,7 +42,7 @@ async def get_awattar(*, config: Box) -> None:
         log.debug(f"Fetching Awattar data took {elapsed_time}.")
 
     date = arrow.utcnow()
-    file_name = (f"awattar_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz")
+    file_name = f"awattar_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz"
     file_path = Path(config.file_location.data_dir) / Path(file_name)
     write_data(data=data, file_path=file_path)
 
@@ -50,11 +50,13 @@ async def get_awattar(*, config: Box) -> None:
 def get_weather(*, config: Box) -> None:
     """Fetch and write the Open Weather Map data."""
     try:
-        owm_id = config.open_weather_map['id']
-        latitude = float(config.open_weather_map['latitude'])
-        longitude = float(config.open_weather_map['longitude'])
+        owm_id = config.open_weather_map["id"]
+        latitude = float(config.open_weather_map["latitude"])
+        longitude = float(config.open_weather_map["longitude"])
     except KeyError:
-        log.error("The config file does not contain all Open Weather Map config keys (id, latitude, longitude). Cannot continue.")
+        log.error(
+            "The config file does not contain all Open Weather Map config keys (id, latitude, longitude). Cannot continue."
+        )
         sys.exit(1)
     if owm_id.lower() == "none":
         log.debug("Open Weather Map is not configured.")
@@ -75,7 +77,7 @@ def get_weather(*, config: Box) -> None:
         log.debug(f"Fetching Open Weather Map took {elapsed_time}.")
 
     date = arrow.utcnow()
-    file_name = (f"open_weather_map_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz")
+    file_name = f"open_weather_map_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz"
     file_path = Path(config.file_location.data_dir) / Path(file_name)
     write_data(data=weather.to_JSON(), file_path=file_path)
 
@@ -139,9 +141,7 @@ def read_data(
 
 
 async def discovergy_meter_read_task(
-    *,
-    config: Box,
-    loop: asyncio.base_events.BaseEventLoop,
+    *, config: Box, loop: asyncio.base_events.BaseEventLoop,
 ) -> None:
     """Async worker to poll the Discovergy API."""
     meters = get_meters(config)
@@ -157,7 +157,9 @@ async def discovergy_meter_read_task(
                 config=config, meters=meters, date_from=date_from, date_to=date_to
             )
         except Exception as e:
-            log.warning("Error in Discovergy poller. Retrying in 15 seconds. {}".format(str(e)))
+            log.warning(
+                "Error in Discovergy poller. Retrying in 15 seconds. {}".format(str(e))
+            )
             await asyncio.sleep(15)
         else:
             await asyncio.sleep(read_interval.seconds)
@@ -166,9 +168,7 @@ async def discovergy_meter_read_task(
 
 
 async def awattar_read_task(
-    *,
-    config: Box,
-    loop: asyncio.base_events.BaseEventLoop,
+    *, config: Box, loop: asyncio.base_events.BaseEventLoop,
 ) -> None:
     """Async worker to poll the Open Weather Map API."""
     read_interval = timedelta(seconds=int(config.poll.awattar))
@@ -177,16 +177,18 @@ async def awattar_read_task(
         try:
             await get_awattar(config=config)
         except Exception as e:
-            log.warning("Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(str(e)))
+            log.warning(
+                "Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(
+                    str(e)
+                )
+            )
             await asyncio.sleep(15)
         else:
             await asyncio.sleep(read_interval.seconds)
 
 
 async def open_weather_map_read_task(
-    *,
-    config: Box,
-    loop: asyncio.base_events.BaseEventLoop,
+    *, config: Box, loop: asyncio.base_events.BaseEventLoop,
 ) -> None:
     """Async worker to poll the Open Weather Map API."""
     read_interval = timedelta(seconds=int(config.poll.weather))
@@ -196,7 +198,11 @@ async def open_weather_map_read_task(
             # FIXME (a8): This isn't an async call yet because we use requests.
             get_weather(config=config)
         except Exception as e:
-            log.warning("Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(str(e)))
+            log.warning(
+                "Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(
+                    str(e)
+                )
+            )
             await asyncio.sleep(15)
         else:
             await asyncio.sleep(read_interval.seconds)
@@ -204,7 +210,7 @@ async def open_weather_map_read_task(
 
 def main(config: Box) -> None:
     loop = asyncio.get_event_loop()
-    task_match = re.compile(r'^.*_task$')
+    task_match = re.compile(r"^.*_task$")
     # Add all tasks to the event loop.
     for attr in globals().keys():
         if task_match.match(attr):
