@@ -8,26 +8,22 @@ All functions that end with _task will be feed to the event loop.
 """
 
 import asyncio
-import gzip
-import json
-import os
 import re
 import sys
 
 from datetime import timedelta
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import arrow  # type: ignore
 
 from box import Box  # type: ignore
 from loguru import logger as log
-from pyowm import OWM  # type: ignore
 
-from . import awattar
+from . import awattar, weather
 from .api import DiscovergyMeter, describe_meters, save_meters
 from .config import read_config
-from .utils import start_logging
+from .utils import start_logging, write_data
 
 
 async def get_awattar(*, config: Box) -> None:
@@ -45,41 +41,6 @@ async def get_awattar(*, config: Box) -> None:
     file_name = f"awattar_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz"
     file_path = Path(config.file_location.data_dir) / Path(file_name)
     write_data(data=data, file_path=file_path)
-
-
-def get_weather(*, config: Box) -> None:
-    """Fetch and write the Open Weather Map data."""
-    try:
-        owm_id = config.open_weather_map["id"]
-        latitude = float(config.open_weather_map["latitude"])
-        longitude = float(config.open_weather_map["longitude"])
-    except KeyError:
-        log.error(
-            "The config file does not contain all Open Weather Map config keys (id, latitude, longitude). Cannot continue."
-        )
-        sys.exit(1)
-    if owm_id.lower() == "none":
-        log.debug("Open Weather Map is not configured.")
-        return
-
-    open_weather_map = OWM(owm_id)
-    if not open_weather_map.is_API_online():
-        log.warning("Open Weather Map endpoint is not online-line.\n")
-        return
-    start_ts = arrow.utcnow()
-    try:
-        weather = open_weather_map.weather_at_coords(latitude, longitude)
-    except Exception as e:
-        log.warning("Could not fetch weather: {}.".format(str(e)))
-        return
-    else:
-        elapsed_time = arrow.utcnow() - start_ts
-        log.debug(f"Fetching Open Weather Map took {elapsed_time}.")
-
-    date = arrow.utcnow()
-    file_name = f"open_weather_map_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz"
-    file_path = Path(config.file_location.data_dir) / Path(file_name)
-    write_data(data=weather.to_JSON(), file_path=file_path)
 
 
 def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
@@ -104,17 +65,6 @@ def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
     save_meters(config=config, meters={m.meter_id: m.metadata for m in meters.values()})
 
     return meters
-
-
-def write_data(*, data: List[Dict], file_path: Path) -> None:
-    """Write the gzipped data to file_path."""
-    dst_dir = file_path.parent
-    if not dst_dir.expanduser().is_dir():
-        log.warning(f"Creating the data destination directory {dst_dir}.")
-        os.makedirs(dst_dir.expanduser().as_posix())
-
-    with gzip.open(file_path.expanduser().as_posix(), "wb") as fh:
-        fh.write(json.dumps(data).encode("utf-8"))
 
 
 def read_data(
@@ -196,7 +146,7 @@ async def open_weather_map_read_task(
     while loop.is_running():
         try:
             # FIXME (a8): This isn't an async call yet because we use requests.
-            get_weather(config=config)
+            weather.get_open_weather_map(config=config)
         except Exception as e:
             log.warning(
                 "Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(

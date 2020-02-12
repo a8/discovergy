@@ -5,6 +5,8 @@
 Discovergy shared helper code
 
 """
+import gzip
+import json
 import os
 import re
 import sys
@@ -12,7 +14,7 @@ import sys
 from contextlib import ContextDecorator
 from pathlib import Path
 from timeit import default_timer
-from typing import Any, Callable, NamedTuple, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Union
 
 
 from box import Box  # type: ignore
@@ -117,3 +119,15 @@ def verify_file_permissions(path: Path) -> bool:
             )
             return True
     return False
+
+
+def write_data(*, data: List[Dict], file_path: Path) -> None:
+    """Write the gzipped data to file_path."""
+    dst_dir = file_path.parent
+    if not dst_dir.expanduser().is_dir():
+        log.warning(f"Creating the data destination directory {dst_dir}.")
+        os.makedirs(dst_dir.expanduser().as_posix())
+
+    with gzip.open(file_path.expanduser().as_posix(), "wb") as fh:
+        fh.write(json.dumps(data).encode("utf-8"))
+
