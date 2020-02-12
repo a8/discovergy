@@ -35,4 +35,4 @@ jobs:
     - name: Test with mypy
       run: |
         pip install mypy
-        mypy -p discovergy
+        mypy src/discovergy
