@@ -12,7 +12,7 @@ import sys
 
 from pathlib import Path
 
-import arrow
+import arrow  # type: ignore
 
 from box import Box  # type: ignore
 from loguru import logger as log
