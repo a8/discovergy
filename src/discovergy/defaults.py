@@ -5,6 +5,9 @@
 Discovergy default values
 
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
 
 APP_NAME = "discoverpy"
 API_HOST = "https://api.discovergy.com"

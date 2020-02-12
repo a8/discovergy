@@ -6,6 +6,9 @@ Poll for data from different sources.
 
 All functions that end with _task will be feed to the event loop.
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
 
 import asyncio
 import re

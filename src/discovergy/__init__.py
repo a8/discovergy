@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
+
 from pkg_resources import get_distribution, DistributionNotFound
 
 try:

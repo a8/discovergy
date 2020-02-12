@@ -11,6 +11,9 @@ Options:
    -h, --help
 
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
 
 import sys
 

@@ -9,6 +9,10 @@ Discovergy uses OAuth1. We use authlib.org to get auth tokens.
 See https://docs.authlib.org/en/latest/client/oauth1.html#oauth-1-session and
 https://api.discovergy.com/docs/
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
+
 from urllib.parse import urljoin, parse_qs
 from typing import Any, Dict, List, NamedTuple, Union
 

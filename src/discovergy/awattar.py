@@ -6,6 +6,10 @@ Discovergy Awattar module
 
 Poll the Awattar API
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
+
 from urllib.parse import urlencode
 from typing import Any, Dict, List, Optional, Union
 

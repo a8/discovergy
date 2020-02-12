@@ -5,6 +5,10 @@
 Discovergy shared helper code
 
 """
+__author__ = "Frank Becker <fb@alien8.de>"
+__copyright__ = "Frank Becker"
+__license__ = "mit"
+
 import gzip
 import json
 import os
@@ -130,4 +134,3 @@ def write_data(*, data: List[Dict], file_path: Path) -> None:
 
     with gzip.open(file_path.expanduser().as_posix(), "wb") as fh:
         fh.write(json.dumps(data).encode("utf-8"))
-
