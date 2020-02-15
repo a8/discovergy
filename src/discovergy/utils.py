@@ -65,10 +65,11 @@ def start_logging(config: Box) -> None:
             },
             {
                 "sink": log_dir / "discovergy_{time}.log",
-                "rotation": "1 week",
+                "rotation": "1 day",
                 "compression": "gz",
                 "format": "{time:YYYY-MM-DDTHH:mm:ss} | {level} | {message}",
-                "serialize": True,
+                "backtrace": True,
+                "serialize": False,
             },
         ],
         "extra": {"user": "someone"},
