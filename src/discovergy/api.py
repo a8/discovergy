@@ -86,12 +86,16 @@ class DiscovergyAPIClient:
             elif request.status_code == 401:
                 log.debug("Need to update the OAuth token.")
                 self.config.pop("oauth_token")
+                log.debug("Renewing Discovergy API endpoint HTTPS session.")
+                self.session = get_new_api_session(self.config)
             else:
                 log.warning(
                     f"Got HTTP status code {request.status_code} while querying {url}. "
                     "Will re-try with a new OAuth token."
                 )
                 self.config.pop("oauth_token")
+                log.debug("Renewing Discovergy API endpoint HTTPS session.")
+                self.session = get_new_api_session(self.config)
         else:
             log.error(f"Could not query {url}. HTTP status code: {request.status_code}")
             raise DiscovergyAPIQueryError(f"Could not query {url}.")
