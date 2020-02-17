@@ -4,6 +4,7 @@ configupdater
 docopt
 httpx
 loguru
+pandas
 pyowm
 python-box
 requests
