@@ -9,6 +9,7 @@ pyowm
 python-box
 requests
 schema
+tables
 tenacity
 
 pysnooper

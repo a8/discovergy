@@ -9,4 +9,5 @@ pyowm
 python-box
 requests
 schema
+tables
 tenacity
