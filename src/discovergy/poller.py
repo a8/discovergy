@@ -29,23 +29,6 @@ from .config import read_config
 from .utils import start_logging, write_data
 
 
-async def get_awattar(*, config: Box) -> None:
-    """Fetch and write Awattar data."""
-    start_ts = arrow.utcnow()
-    try:
-        data = await awattar.get_data(config=config)
-    except Exception as e:
-        log.warning("Could not fetch Awattar data: {}.".format(str(e)))
-    else:
-        elapsed_time = arrow.utcnow() - start_ts
-        log.debug(f"Fetching Awattar data took {elapsed_time}.")
-
-    date = arrow.utcnow()
-    file_name = f"awattar_{date.format('YYYY-MM-DD_HH-mm-ss')}.json.gz"
-    file_path = Path(config.file_location.data_dir) / Path(file_name)
-    write_data(data=data, file_path=file_path)
-
-
 def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
     """Describe all meters, save them to the config dir, and return the meters
     configured. In no [meters] are configured return all."""
@@ -128,10 +111,10 @@ async def awattar_read_task(
     log.debug(f"The Awattar read interval is {read_interval}.")
     while loop.is_running():
         try:
-            await get_awattar(config=config)
+            await awattar.get(config=config)
         except Exception as e:
             log.warning(
-                "Error in Open Weather Map poller. Retrying in 15 seconds. {}".format(
+                "Error in Awattar data poller. Retrying in 15 seconds. {}".format(
                     str(e)
                 )
             )

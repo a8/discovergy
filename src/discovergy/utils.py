@@ -20,6 +20,7 @@ from pathlib import Path
 from timeit import default_timer
 from typing import Any, Callable, Dict, List, NamedTuple, Union
 
+import pandas as pd  # type: ignore
 
 from box import Box  # type: ignore
 from loguru import logger as log
@@ -90,6 +91,24 @@ def before_log(logger: Any, log_level: str) -> Callable:
     return log_it
 
 
+def split_df_by_month(*, df) -> List[pd.DataFrame]:
+    """Return data frames split by month."""
+    data_frames = []
+    intervals = sorted(set([(e.year, e.month) for e in df.index.unique()]))
+    if len(intervals) == 1:
+        # One month only, early return
+        data_frames.append(df)
+        return data_frames
+    date_range = pd.date_range("{}-{:02d}".format(intervals[0][0], intervals[0][1]), periods=len(intervals), freq="M", tz="UTC")
+    prev_month = date_range[0]
+    data_frames.append(df[df.index <= date_range[0]])
+    for date in date_range[1:]:
+        df_per_month = df[(prev_month < df.index) & (df.index <= date)]
+        data_frames.append(df_per_month)
+        prev_month = date
+    return df_per_month
+
+
 def str2bool(value: str) -> bool:
     """Return the boolean value of the value given as a str."""
     if value.lower() in ["true", "1", "t", "y", "yes", "yeah"]:
@@ -135,3 +154,21 @@ def write_data(*, data: List[Dict], file_path: Path) -> None:
 
     with gzip.open(file_path.expanduser().as_posix(), "wb") as fh:
         fh.write(json.dumps(data).encode("utf-8"))
+
+
+def write_data_frames(*, config: Box, data_frames: List[pd.DataFrame], name: str) -> None:
+    """Create or update the data as a Pandas DataFrame hdf5 file."""
+    if not data_frames:
+        log.debug(f"Did not receive any data for {name}.")
+        return
+    for df in data_frames:
+        if not len(df):
+            log.debug(f"Did not find any data in {df}. Skipping...")
+            continue
+        first_ts = min(df.index)
+        file_name = f"{name}_{first_ts.year}-{first_ts.month:02d}.hdf5"
+        file_path = Path(config.file_location.data_dir) / Path(file_name)
+        if file_path.is_file():
+            df_prev = pd.read_hdf(file_path, name)
+            df.combine_first(df_prev)
+        df.to_hdf(file_path, key=name)
