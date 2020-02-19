@@ -171,5 +171,5 @@ def write_data_frames(*, config: Box, data_frames: List[pd.DataFrame], name: str
         file_path = file_path.expanduser()
         if file_path.is_file():
             df_prev = pd.read_hdf(file_path, name)
-            df.combine_first(df_prev)
+            df = df.combine_first(df_prev)
         df.to_hdf(file_path, key=name)
