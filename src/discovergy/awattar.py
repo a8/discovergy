@@ -86,8 +86,12 @@ async def get_data(
 
 def raw_to_df(*, data: Dict) -> pd.DataFrame:
     """Return the raw Awattar data as a Pandas DataFrame."""
-    date_index = (pd.Timestamp(e["start_timestamp"], unit="ms", tz="utc") for e in data["data"] if "start_timestamp" in e)
-    prices = (e['marketprice'] for e in data['data'] if 'marketprice' in e)
+    date_index = (
+        pd.Timestamp(e["start_timestamp"], unit="ms", tz="utc")
+        for e in data["data"]
+        if "start_timestamp" in e
+    )
+    prices = (e["marketprice"] for e in data["data"] if "marketprice" in e)
     df = pd.DataFrame(prices, index=date_index, columns=["marketprice"])
     return df
 

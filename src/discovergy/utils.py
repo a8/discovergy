@@ -99,7 +99,12 @@ def split_df_by_month(*, df) -> List[pd.DataFrame]:
         # One month only, early return
         data_frames.append(df)
         return data_frames
-    date_range = pd.date_range("{}-{:02d}".format(intervals[0][0], intervals[0][1]), periods=len(intervals), freq="M", tz="UTC")
+    date_range = pd.date_range(
+        "{}-{:02d}".format(intervals[0][0], intervals[0][1]),
+        periods=len(intervals),
+        freq="M",
+        tz="UTC",
+    )
     prev_month = date_range[0]
     data_frames.append(df[df.index <= date_range[0]])
     for date in date_range[1:]:
@@ -156,7 +161,9 @@ def write_data(*, data: List[Dict], file_path: Path) -> None:
         fh.write(json.dumps(data).encode("utf-8"))
 
 
-def write_data_frames(*, config: Box, data_frames: List[pd.DataFrame], name: str) -> None:
+def write_data_frames(
+    *, config: Box, data_frames: List[pd.DataFrame], name: str
+) -> None:
     """Create or update the data as a Pandas DataFrame hdf5 file."""
     if not data_frames:
         log.debug(f"Did not receive any data for {name}.")

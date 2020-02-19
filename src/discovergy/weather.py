@@ -65,7 +65,9 @@ def get_open_weather_map(*, config: Box) -> Optional[Dict]:
         return
     else:
         elapsed_time = arrow.utcnow() - start_ts
-        log.debug(f"Fetching Open Weather Map took {elapsed_time.total_seconds():.3f} s.")
+        log.debug(
+            f"Fetching Open Weather Map took {elapsed_time.total_seconds():.3f} s."
+        )
     try:
         weather = json.loads(weather.to_JSON())
     except json.JSONDecodeError as e:

@@ -61,9 +61,15 @@ def get(
         data = meter.readings(
             ts_from=date_from.timestamp, ts_to=date_to.timestamp, resolution="raw"
         )
-        log.info(f"To get data for meter {meter_id} took {meter.last_query_duration:.3f} s.")
+        log.info(
+            f"To get data for meter {meter_id} took {meter.last_query_duration:.3f} s."
+        )
         df = raw_to_df(data=data)
-        write_data_frames(config=config, data_frames=split_df_by_month(df=df), name=f"power_{meter_id}")
+        write_data_frames(
+            config=config,
+            data_frames=split_df_by_month(df=df),
+            name=f"power_{meter_id}",
+        )
 
 
 @retry(
