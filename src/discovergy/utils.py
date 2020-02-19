@@ -168,6 +168,7 @@ def write_data_frames(*, config: Box, data_frames: List[pd.DataFrame], name: str
         first_ts = min(df.index)
         file_name = f"{name}_{first_ts.year}-{first_ts.month:02d}.hdf5"
         file_path = Path(config.file_location.data_dir) / Path(file_name)
+        file_path = file_path.expanduser()
         if file_path.is_file():
             df_prev = pd.read_hdf(file_path, name)
             df.combine_first(df_prev)
