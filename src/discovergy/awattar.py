@@ -34,7 +34,7 @@ async def get(*, config: Box) -> None:
         log.warning("Could not fetch Awattar data: {}.".format(str(e)))
     else:
         elapsed_time = arrow.utcnow() - start_ts
-        log.debug(f"Fetching Awattar data took {elapsed_time}.")
+        log.debug(f"Fetching Awattar data took {elapsed_time.total_seconds():.3f} s.")
 
     data_frames = split_df_by_month(df=raw_to_df(data=data))
     # for df in data_frames:
