@@ -18,7 +18,7 @@ import sys
 from contextlib import ContextDecorator
 from pathlib import Path
 from timeit import default_timer
-from typing import Any, Callable, Dict, List, NamedTuple, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
 
 import pandas as pd  # type: ignore
 
@@ -114,6 +114,29 @@ def split_df_by_month(*, df) -> List[pd.DataFrame]:
     return data_frames
 
 
+def split_df_by_day(*, df) -> List[pd.DataFrame]:
+    """Return data frames split by day."""
+    data_frames = []
+    intervals = sorted(set([(e.year, e.month, e.day) for e in df.index.unique()]))
+    if len(intervals) == 1:
+        # One day only, early return
+        data_frames.append(df)
+        return data_frames
+    date_range = pd.date_range(
+        "{}-{:02d}-{:02d}".format(intervals[0][0], intervals[0][1], intervals[0][2]),
+        periods=len(intervals),
+        freq="D",
+        # tz="UTC",
+    )
+    # date_range starts at 0h 00m 00s
+    prev_day = date_range[0]
+    for date in date_range[1:]:
+        df_per_day = df[(prev_day < df.index) & (df.index <= date)]
+        data_frames.append(df_per_day)
+        prev_day = date
+    return data_frames
+
+
 def str2bool(value: str) -> bool:
     """Return the boolean value of the value given as a str."""
     if value.lower() in ["true", "1", "t", "y", "yes", "yeah"]:
@@ -151,7 +174,7 @@ def verify_file_permissions(path: Path) -> bool:
 
 
 def write_data(*, data: List[Dict], file_path: Path) -> None:
-    """Write the gzipped data to file_path."""
+    """Write the gz-iped raw data to file_path."""
     dst_dir = file_path.parent
     if not dst_dir.expanduser().is_dir():
         log.warning(f"Creating the data destination directory {dst_dir}.")
@@ -164,7 +187,7 @@ def write_data(*, data: List[Dict], file_path: Path) -> None:
 def write_data_frames(
     *, config: Box, data_frames: List[pd.DataFrame], name: str
 ) -> None:
-    """Create or update the data as a Pandas DataFrame hdf5 file."""
+    """Create or update the data as a Pandas DataFrame in hdf5 file."""
     if not data_frames:
         log.debug(f"Did not receive any data for {name}.")
         return
