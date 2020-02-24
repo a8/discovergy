@@ -111,7 +111,7 @@ def split_df_by_month(*, df) -> List[pd.DataFrame]:
         df_per_month = df[(prev_month < df.index) & (df.index <= date)]
         data_frames.append(df_per_month)
         prev_month = date
-    return df_per_month
+    return data_frames
 
 
 def str2bool(value: str) -> bool:
