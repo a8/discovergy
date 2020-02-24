@@ -15,8 +15,10 @@ import re
 import sys
 
 from datetime import timedelta
+from pathlib import Path
 
 import arrow  # type: ignore
+import pystore
 
 from box import Box  # type: ignore
 from loguru import logger as log
@@ -95,13 +97,15 @@ async def open_weather_map_read_task(
 
 
 def main(config: Box) -> None:
+    """Entry point for the data poller."""
     loop = asyncio.get_event_loop()
-    task_match = re.compile(r"^.*_task$")
+    # Set pystore directory
+    pystore.set_path(Path(config.file_location.data_dir).expanduser().as_posix())
     # Add all tasks to the event loop.
+    task_match = re.compile(r"^.*_task$")
     for attr in globals().keys():
         if task_match.match(attr):
             asyncio.ensure_future(globals()[attr](config=config, loop=loop))
-
     try:
         loop.run_forever()
     except KeyboardInterrupt:
