@@ -46,8 +46,6 @@ ValueSchema = schema.Schema(
 )
 
 
-# import pysnooper
-# @pysnooper.snoop()
 def get(
     *,
     config: Box,
