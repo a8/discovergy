@@ -15,7 +15,6 @@ from collections import defaultdict
 from typing import Dict, List
 
 import arrow  # type: ignore
-import numpy as np  # type: ignore
 import pandas as pd  # type: ignore
 import schema  # type: ignore
 
@@ -24,7 +23,7 @@ from loguru import logger as log
 from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponential  # type: ignore
 
 from .api import DiscovergyMeter, describe_meters, save_meters
-from .utils import before_log, split_df_by_month, write_data_frames
+from .utils import before_log, split_df_by_day, write_data_frames, write_data_to_pystore
 
 
 ValueSchema = schema.Schema(
@@ -63,10 +62,11 @@ def get(
             f"To get data for meter {meter_id} took {meter.last_query_duration:.3f} s."
         )
         df = raw_to_df(data=data)
-        write_data_frames(
+        write_data_to_pystore(
             config=config,
-            data_frames=split_df_by_month(df=df),
+            data_frames=split_df_by_day(df=df),
             name=f"power_{meter_id}",
+            metadata={"meter_id": meter_id}
         )
 
 
@@ -101,7 +101,11 @@ def get_meters(config: Box) -> Dict[str, DiscovergyMeter]:
 
 
 def raw_to_df(*, data: List[Dict]) -> pd.DataFrame:
-    """Return the raw Discovergy power meter data as a Pandas DataFrame."""
+    """Return the raw Discovergy power meter data as a Pandas DataFrame.
+
+    The index is re-sampled to full seconds. The Discovergy API returns values
+    at about a rate of 1 second.
+    """
     index = []
     values = defaultdict(list)
     for reading in data:
@@ -110,16 +114,20 @@ def raw_to_df(*, data: List[Dict]) -> pd.DataFrame:
         except schema.SchemaError as e:
             log.warning(f"Got invalid data from Discovergy: {e}")
             continue
-        index.append(pd.Timestamp(reading["time"], unit="ms", tz="utc"))
+        index.append(pd.Timestamp(reading["time"], unit="ms"))
+        # index.append(pd.Timestamp(reading["time"], unit="ms", tz="utc"))
         for k, v in reading["values"].items():
-            # Saving tons of 0s from using disk space. Cutting of 10^7 allows us
-            # to save in dtype=np.int32 which is about half of int64 or float 64.
+            # Saving tons of 0s from using disk space.
             # Watt resolution is all we need and Discovergy reports anyway.
-            if k.startswith("energy") and v > 100:
+            if k.startswith("energy") and v > 0:
                 v = int(v / 10000000)
             # Do not store a higher precision than we get. This is mV resolution.
-            if k.startswith("voltage") and v > 0:
+            elif k.startswith("voltage") and v > 0:
                 v = int(v / 100)
-            values[k].append(v)
-    df = pd.DataFrame(values, index=index, dtype=np.int32)
+            else:
+                values[k].append(int(v))
+    df = pd.DataFrame(values, index=index)
+    del(values)
+    # The Discovergy API returns data at ~1s intervals. Resample to full seconds.
+    df = pd.DataFrame(df.resample('1s').median())
     return df
