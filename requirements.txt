@@ -1,12 +1,15 @@
 arrow
 authlib
 configupdater
+dask[dataframe]
 docopt
+fsspec>=0.3.3
 httpx
 loguru
 pandas
 pyowm
 python-box
+pystore
 requests
 schema
 tables
