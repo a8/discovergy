@@ -101,3 +101,23 @@ def compare(s1: pd.Series, s2: pd.Series) -> bool:
     s1, s2 = np.asarray(s1), np.asarray(s2)
     (s1 == s2) | (np.isnan(s1) & np.isnan(s2))
     return ((s1 == s2) | (np.isnan(s1) | np.isnan(s2))).all()
+
+
+def data_from_files():
+    """Read dumped raw data from files."""
+    from .config import read_config
+    import os
+    import json
+    config = read_config()
+    for f in os.listdir():
+        if f.startswith("awattar_20"):
+            print(f)
+            with open(f) as fh:
+                data = json.load(fh)
+            df = raw_to_df(data=data)
+            write_data_frames(
+                config=config,
+                data_frames=split_df_by_month(df=df),
+                name="awattar"
+            )
+

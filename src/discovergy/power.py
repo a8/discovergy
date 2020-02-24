@@ -131,3 +131,28 @@ def raw_to_df(*, data: List[Dict]) -> pd.DataFrame:
     # The Discovergy API returns data at ~1s intervals. Resample to full seconds.
     df = pd.DataFrame(df.resample('1s').median())
     return df
+
+
+def data_from_files(data_dir, meter_id):
+    """Read data from raw data dumped JSON files."""
+    from .config import read_config
+    import gzip
+    import os
+    import json
+    import pystore
+    from pathlib import Path
+    config = read_config()
+    name = f"power_{meter_id}"
+    pystore.set_path(Path(config.file_location.data_dir).expanduser().as_posix())
+    for f in sorted(os.listdir(data_dir)):
+        if f.startswith("discovergy_data"):
+            with gzip.open(f"{data_dir}/{f}") as fh:
+                data = json.load(fh)
+            df = raw_to_df(data=data)
+            print(f)
+            write_data_to_pystore(
+                config=config,
+                data_frames=split_df_by_day(df=df),
+                name=name,
+                metadata={"meter_id": meter_id},
+            )
