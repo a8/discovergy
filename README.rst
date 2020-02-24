@@ -3,18 +3,19 @@ discovergy
 ==========
 
 
-Fetch and analyze data from Discovergy_ smart meters, Awattar_ power provider, and `Open Weather Map <https://openweathermap.org>`_.
+Fetch and analyze data from Discovergy_ smart meters, Awattar_ power provider, and `Open Weather Map <https://openweathermap.org>`_. Also, trigger events based on configurable conditions like
+turn on the washing machine when power is cheap.
 
 
 Description
 ===========
 
-This is a hobby project to interact with the data of a Discovergy smart meter. It's sole purpose is to play with data and to try out new things. Not all may make sense. You're welcome to use it, provide feedback, send patches...
+This is a hobby project to interact with the data of a Discovergy smart meter. It's sole purpose is to play with data, learn and to try out new things. Not all may make sense. You're welcome to use it, provide feedback, send patches...
 
 Installation
 ============
 
-It's a Python 3.8 package. Given that::
+It's a Python >= 3.8 package. Given that::
 
   # python --version
   Python 3.8.1
