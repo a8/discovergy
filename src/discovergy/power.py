@@ -66,7 +66,7 @@ def get(
             config=config,
             data_frames=split_df_by_day(df=df),
             name=f"power_{meter_id}",
-            metadata={"meter_id": meter_id}
+            metadata={"meter_id": meter_id},
         )
 
 
@@ -127,9 +127,9 @@ def raw_to_df(*, data: List[Dict]) -> pd.DataFrame:
             else:
                 values[k].append(int(v))
     df = pd.DataFrame(values, index=index)
-    del(values)
+    del values
     # The Discovergy API returns data at ~1s intervals. Resample to full seconds.
-    df = pd.DataFrame(df.resample('1s').median())
+    df = pd.DataFrame(df.resample("1s").median())
     return df
 
 
@@ -141,6 +141,7 @@ def data_from_files(data_dir, meter_id):
     import json
     import pystore
     from pathlib import Path
+
     config = read_config()
     name = f"power_{meter_id}"
     pystore.set_path(Path(config.file_location.data_dir).expanduser().as_posix())

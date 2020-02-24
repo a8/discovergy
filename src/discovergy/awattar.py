@@ -108,6 +108,7 @@ def data_from_files():
     from .config import read_config
     import os
     import json
+
     config = read_config()
     for f in os.listdir():
         if f.startswith("awattar_20"):
@@ -116,8 +117,5 @@ def data_from_files():
                 data = json.load(fh)
             df = raw_to_df(data=data)
             write_data_frames(
-                config=config,
-                data_frames=split_df_by_month(df=df),
-                name="awattar"
+                config=config, data_frames=split_df_by_month(df=df), name="awattar"
             )
-

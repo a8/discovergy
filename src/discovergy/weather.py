@@ -114,6 +114,7 @@ def data_from_files():
     from .config import read_config
     import os
     import json
+
     config = read_config()
     for f in os.listdir():
         if f.startswith("open_weather_map"):
@@ -121,8 +122,4 @@ def data_from_files():
             with open(f) as fh:
                 data = json.loads(json.load(fh))
             df = raw_owm_to_df(data=data)
-            write_data_frames(
-                config=config,
-                data_frames=[df],
-                name="weather"
-            )
+            write_data_frames(config=config, data_frames=[df], name="weather")

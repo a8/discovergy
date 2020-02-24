@@ -207,7 +207,11 @@ def write_data_frames(
 
 
 def write_data_to_pystore(
-    *, config: Box, data_frames: List[pd.DataFrame], name: str, metadata: Optional[Dict] = None
+    *,
+    config: Box,
+    data_frames: List[pd.DataFrame],
+    name: str,
+    metadata: Optional[Dict] = None,
 ) -> None:
     """Create or update the pandas.DataFrames as Pystore collection.items.
 
