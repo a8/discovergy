@@ -21,6 +21,7 @@ from timeit import default_timer
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Union
 
 import pandas as pd  # type: ignore
+import pystore
 
 from box import Box  # type: ignore
 from loguru import logger as log
@@ -203,3 +204,48 @@ def write_data_frames(
             df_prev = pd.read_hdf(file_path, name)
             df = df.combine_first(df_prev)
         df.to_hdf(file_path, key=name)
+
+
+def write_data_to_pystore(
+    *, config: Box, data_frames: List[pd.DataFrame], name: str, metadata: Optional[Dict] = None
+) -> None:
+    """Create or update the pandas.DataFrames as Pystore collection.items.
+
+    The DataFrames must contain time series data with the index of type datetime64.
+    The lowest index (min(index)) will be converted as YYYY-MM string and set
+    as the item name.
+    Each dataframe must only contain data of one day! This function doesn't check max(df.index).
+
+    Note, PyStore will make sure there is a unique index:
+
+    ~/.../site-packages/pystore/collection.py in append(self, item, data, npartitions, epochdate, threaded, reload_items, **kwargs)
+    183         # combined = current.data.append(new)
+    184         combined = dd.concat([current.data, new]).drop_duplicates(keep="last")
+
+    PyStore:
+    https://medium.com/@aroussi/fast-data-store-for-pandas-time-series-data-using-pystore-89d9caeef4e2
+    """
+
+    if metadata is None:
+        metadata = {}
+    if not data_frames:
+        log.debug(f"Did not receive any data for {name}.")
+        return
+    store = pystore.store("discovergy")
+    collection = store.collection(name)
+    item_names = collection.list_items()
+    for df in data_frames:
+        if not len(df):
+            log.debug(f"Did not find any data in {df}. Skipping...")
+            continue
+        first_ts = min(df.index)
+        item_name = f"{first_ts.year}-{first_ts.month:02d}"
+        if item_name in item_names:
+            # FIXME (a8): Create one partition per day. There must be a better way. Issue is that
+            # pandas loads the full pd.DataFrame into memory. That requires memory.
+            npartitions = first_ts.day
+            log.debug(f"Appended to {item_name} {first_ts}.")
+            collection.append(item_name, df, npartitions=npartitions)
+        else:
+            log.debug("Created new Dask DF.")
+            collection.write(item_name, df, metadata=metadata, overwrite=False)
